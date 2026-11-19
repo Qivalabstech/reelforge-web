@@ -43,7 +43,7 @@ function renderChips() {
 }
 
 // ---------------------------------------------------------------- loading the clip
-async function onFile(file) {
+async function onFile(file, opts = {}) {
   if (!file) return;
   S.file = file;
   const v = $('#video');
@@ -60,13 +60,14 @@ async function onFile(file) {
     S.buffer = await ac.decodeAudioData(await file.arrayBuffer());
     ac.close();
     S.loud = loudness(S.buffer, 0.5);
-    const lo = 4, hi = S.loud.length - 2;
+    let lo = 4, hi = S.loud.length - 2;
+    if (opts.peakHint != null) { lo = Math.max(0, Math.floor((opts.peakHint - 6) / 0.5)); hi = Math.min(S.loud.length, Math.ceil((opts.peakHint + 4) / 0.5)); }
     let best = lo;
     for (let i = lo; i < hi; i++) if (S.loud[i] > S.loud[best]) best = i;
     setPeak(S.loud.length > 8 ? best * 0.5 + 0.25 : Math.min(S.duration * 0.7, S.duration - 3));
   } catch (e) {
     log('No audio track found; the reel will have only Blocky’s voice.', 'warn');
-    setPeak(Math.min(S.duration * 0.7, Math.max(3, S.duration - 3)));
+    setPeak(opts.peakHint != null ? opts.peakHint : Math.min(S.duration * 0.7, Math.max(3, S.duration - 3)));
   }
 }
 
@@ -486,6 +487,41 @@ $('#rerender').addEventListener('click', rerender);
 document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($(b.dataset.copy).value); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy'), 1500); } catch { $(b.dataset.copy).select(); }
 }));
+
+// ---------------------------------------------------------------- fetching from a link
+function timeFromLink(u) {
+  try {
+    const t = new URL(u).searchParams.get('t'); if (!t) return '';
+    const m = t.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+    if (!m) return t;
+    const sec = (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0);
+    return `${Math.floor(sec / 3600)}:${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  } catch { return ''; }
+}
+async function fetchLink(e) {
+  e.preventDefault();
+  const url = $('#link').value.trim(), st = $('#fetchStatus');
+  if (!url) return;
+  const btn = $('#fetchBtn'); btn.disabled = true;
+  st.textContent = 'Finding the video and cutting the moment on the server (up to a minute)…';
+  try {
+    const r = await fetch('/api/fetch', { method: 'POST', headers: { 'content-type': 'application/json', 'x-app-password': getPw() },
+      body: JSON.stringify({ url, time: $('#linkTime').value.trim() || null }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || (r.status === 404 ? 'Link fetching is not deployed (api/fetch.py missing).' : 'HTTP ' + r.status)); }
+    let meta = {}; try { meta = JSON.parse(decodeURIComponent(r.headers.get('x-clip-meta') || '%7B%7D')); } catch {}
+    const total = +r.headers.get('content-length') || 0, reader = r.body.getReader(), parts = []; let got = 0;
+    for (;;) { const { done, value } = await reader.read(); if (done) break; parts.push(value); got += value.length; st.textContent = `Downloading ${(got / 1e6).toFixed(1)}${total ? ' / ' + (total / 1e6).toFixed(1) : ''} MB…`; }
+    const file = new File(parts, (meta.uploader || 'clip').replace(/[^\w-]/g, '_') + '.mp4', { type: 'video/mp4' });
+    if (meta.uploader && !$('#streamer').value) $('#streamer').value = meta.uploader;
+    if (['Twitch', 'Kick', 'YouTube'].includes(meta.platform)) $('#platform').value = meta.platform;
+    if (meta.title && !$('#context').value) $('#context').placeholder = meta.title.slice(0, 80);
+    await onFile(file, { peakHint: meta.peak_hint });
+    st.textContent = `Got ${fmt(meta.duration || S.duration)} from "${(meta.title || url).slice(0, 70)}".` + (meta.peak_hint != null ? ' Peak set near your time; adjust it below if needed.' : '');
+  } catch (err) { st.textContent = 'Could not fetch: ' + err.message; }
+  finally { btn.disabled = false; }
+}
+$('#linkForm').addEventListener('submit', fetchLink);
+$('#link').addEventListener('change', () => { const t = timeFromLink($('#link').value.trim()); if (t && !$('#linkTime').value) $('#linkTime').value = t; });
 addEventListener('resize', drawStrip);
 init();
 window.ReelForge = { S, onFile, setPeak, makeReel };

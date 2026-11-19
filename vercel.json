@@ -3,6 +3,7 @@
   "framework": null,
   "outputDirectory": "public",
   "functions": {
-    "api/*.js": { "maxDuration": 60 }
+    "api/*.js": { "maxDuration": 60 },
+    "api/fetch.py": { "maxDuration": 300 }
   }
 }

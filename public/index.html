@@ -81,7 +81,15 @@
     </header>
 
     <section>
-      <h2><b>1</b>Upload the stream clip</h2>
+      <h2><b>1</b>Get the stream clip</h2>
+      <form id="linkForm" class="grid" style="align-items:end">
+        <label class="f" style="grid-column: span 2">Paste a link: Twitch/Kick clip or VOD (VODs need the moment time)
+          <input id="link" type="text" inputmode="url" placeholder="https://www.twitch.tv/videos/123456789?t=1h23m45s"></label>
+        <label class="f">Moment time (VODs)<input id="linkTime" type="text" placeholder="1:23:45"></label>
+        <button class="primary" type="submit" id="fetchBtn">Fetch video</button>
+      </form>
+      <p id="fetchStatus" class="muted" aria-live="polite"></p>
+      <p class="muted" style="margin:14px 0 8px">Or upload a file:</p>
       <div id="drop" class="drop">
         Drop an MP4 here: a Twitch/Kick clip you downloaded, or any 30 s to 10 min part of a stream.
         <br><label class="btn file">Choose video<input id="file" type="file" accept="video/*"></label>
