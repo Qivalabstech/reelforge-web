@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReelForge · GTA 6 reaction reels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;900&display=swap" rel="stylesheet">
+<script type="importmap">{ "imports": { "three": "./lib/three.module.min.js" } }</script>
+<style>
+  :root { --bg:#0f0920; --card:#170e33; --line:#33245f; --text:#f3eefe; --muted:#b4a8d6; --pink:#ff4fa3; --cyan:#33e1ff; --yellow:#ffd23f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Montserrat, system-ui, sans-serif; line-height: 1.45; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 80px; }
+  header h1 { margin: 0; font-size: 30px; font-weight: 900; letter-spacing: -.01em; }
+  header h1 span { color: var(--pink); }
+  header p { margin: 6px 0 14px; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); }
+  .chip.ok { color: #9ff0c4; border-color: #2b6b4c; }
+  .chip.off { color: var(--muted); }
+  .note { margin-top: 12px; font-size: 14px; color: var(--yellow); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 18px; }
+  section h2 { margin: 0 0 12px; font-size: 18px; font-weight: 900; }
+  section h2 b { color: var(--pink); margin-right: 6px; }
+  .drop { border: 2px dashed var(--line); border-radius: 14px; padding: 26px; text-align: center; color: var(--muted); }
+  .drop.over { border-color: var(--pink); color: var(--text); }
+  .drop label { display: inline-block; margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  label.f { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  input[type=text], select, textarea { font: inherit; color: var(--text); background: #0f0a24; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  button, .btn { font: inherit; font-weight: 800; min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: #24164d; color: var(--text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+  button.primary, .btn.primary { background: var(--pink); border-color: var(--pink); color: #1a0716; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .file { position: relative; }
+  .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  video { width: 100%; max-height: 360px; background: #000; border-radius: 12px; }
+  #strip { width: 100%; height: 56px; display: block; margin-top: 10px; border-radius: 8px; background: #0f0a24; cursor: crosshair; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .check input { width: 20px; height: 20px; }
+  .barwrap { height: 10px; background: #0f0a24; border-radius: 99px; overflow: hidden; margin-top: 14px; }
+  #bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--cyan)); transition: width .2s; }
+  #barLabel { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  #log { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); max-height: 160px; overflow: auto; }
+  #log .warn { color: var(--yellow); } #log .err { color: #ff8a8a; } #log .ok { color: #9ff0c4; }
+  .result { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; }
+  @media (max-width: 720px) { .result { grid-template-columns: 1fr; } }
+  #out { width: 100%; max-height: 560px; aspect-ratio: 9/16; background: #000; border-radius: 12px; }
+  .copyrow { display: flex; gap: 8px; align-items: flex-start; }
+  .copyrow textarea, .copyrow input { flex: 1; }
+  #thumb { display: none; }
+  .gate { max-width: 420px; margin: 80px auto; }
+  details summary { cursor: pointer; font-weight: 800; margin-top: 16px; }
+  footer { margin-top: 26px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate" hidden>
+    <section>
+      <h2>ReelForge is locked</h2>
+      <form id="pwForm" class="row">
+        <label class="f" style="flex:1">Password<input id="pw" type="text" autocomplete="current-password"></label>
+        <button class="primary" type="submit" data-keep="1">Unlock</button>
+      </form>
+      <p id="pwErr" class="muted" hidden>That password did not work.</p>
+    </section>
+  </div>
+
+  <div id="app" hidden>
+    <header>
+      <h1>Reel<span>Forge</span></h1>
+      <p>Turn a GTA 6 stream clip into a 9:16 reaction reel with Blocky. Everything renders in this browser tab.</p>
+      <div id="chips" class="chips"></div>
+      <p id="demoNote" class="note" hidden>Some services are off. Add your API keys in Vercel → Settings → Environment Variables, then redeploy.</p>
+    </header>
+
+    <section>
+      <h2><b>1</b>Upload the stream clip</h2>
+      <div id="drop" class="drop">
+        Drop an MP4 here: a Twitch/Kick clip you downloaded, or any 30 s to 10 min part of a stream.
+        <br><label class="btn file">Choose video<input id="file" type="file" accept="video/*"></label>
+      </div>
+    </section>
+
+    <section id="step2" hidden>
+      <h2><b>2</b>Pick the moment and add details</h2>
+      <video id="video" controls playsinline muted preload="auto"></video>
+      <canvas id="strip" aria-label="Loudness of the clip. Click to set the peak moment."></canvas>
+      <div class="row">
+        <span class="muted">Peak moment: <strong id="peakLabel">–</strong>. The loudest point is picked for you; click the bar or use the button to change it.</span>
+        <button type="button" id="useTime">Use current video time</button>
+      </div>
+      <p id="clipInfo" class="muted"></p>
+      <div class="grid">
+        <label class="f">Streamer name<input id="streamer" type="text" placeholder="e.g. KaiCenat"></label>
+        <label class="f">Platform<select id="platform"><option>Twitch</option><option>Kick</option><option>YouTube</option></select></label>
+        <label class="f">Language<select id="lang"><option value="english">English (global)</option><option value="hinglish">Hinglish</option></select></label>
+        <label class="f">Layout<select id="layout"><option value="fit">Full frame on blurred background</option><option value="fill">Fill panel (crops the sides)</option></select></label>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <label class="f">What happens? (optional, helps the jokes)<input id="context" type="text" placeholder="e.g. tries to jump the bridge in a stolen bus"></label>
+        <label class="f">End text<input id="cta" type="text" value="Follow for daily GTA 6 clips"></label>
+      </div>
+      <div class="row">
+        <label class="check"><input id="streamCaps" type="checkbox" checked> Show the streamer's speech as captions</label>
+      </div>
+      <div class="row"><button class="primary" type="button" id="make">Make reel</button></div>
+      <div class="barwrap"><div id="bar"></div></div>
+      <div id="barLabel"></div>
+      <ul id="log"></ul>
+    </section>
+
+    <section id="result" hidden>
+      <h2><b>3</b>Your reel</h2>
+      <div class="result">
+        <div>
+          <video id="out" controls playsinline></video>
+          <div class="row"><a id="download" class="btn primary" href="#">Download MP4</a></div>
+        </div>
+        <div>
+          <label class="f">Title (YouTube Shorts)</label>
+          <div class="copyrow"><input id="p_title" type="text"><button type="button" data-copy="#p_title">Copy</button></div>
+          <label class="f" style="margin-top:12px">Caption + hashtags (Instagram / Facebook)</label>
+          <div class="copyrow"><textarea id="p_caption" rows="4"></textarea><button type="button" data-copy="#p_caption">Copy</button></div>
+          <details>
+            <summary>Edit Blocky's lines and re-render</summary>
+            <div class="grid" style="margin-top:12px">
+              <label class="f">Hook<input id="e_hook" type="text"></label>
+              <label class="f">Payoff reaction<select id="e_payoff"></select></label>
+            </div>
+            <label class="f" style="margin-top:12px">Commentary (clip paused)<textarea id="e_comment"></textarea></label>
+            <label class="f">Commentary face<select id="e_cexpr"></select></label>
+            <label class="f" style="margin-top:12px">Punchline (end question)<textarea id="e_punch"></textarea></label>
+            <label class="f">Punchline face<select id="e_pexpr"></select></label>
+            <div class="row"><button type="button" id="rerender">Re-render with these lines</button></div>
+          </details>
+          <p class="muted" style="margin-top:14px">Watch the reel before you post it: the lines are AI-written. Keep the streamer credit in the caption.</p>
+        </div>
+      </div>
+      <img id="thumb" alt="">
+    </section>
+    <footer>Works best in Chrome or Edge on a computer. Rendering a 30 s reel takes about 1–3 minutes.</footer>
+  </div>
+</div>
+<script>
+  for (const id of ['e_payoff', 'e_cexpr', 'e_pexpr']) {
+    const s = document.getElementById(id);
+    for (const x of ['neutral', 'happy', 'laugh', 'shocked', 'angry', 'sad']) { const o = document.createElement('option'); o.value = o.textContent = x; s.appendChild(o); }
+  }
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

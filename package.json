@@ -1,0 +1,11 @@
+{
+  "name": "reelforge-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GTA 6 stream clips into 9:16 reaction reels with a 3D blocky host. Runs on Vercel.",
+  "scripts": {
+    "dev": "node dev-server.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
